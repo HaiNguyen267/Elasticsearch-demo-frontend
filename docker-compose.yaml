@@ -1,0 +1,54 @@
+version: "3.3"
+services:
+  mysql:
+    image: mysql 
+    container_name: mysql
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: my_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmy_password"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  elasticsearch:
+    image: elasticsearch:7.17.9
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+    ports:
+      - 9200:9200
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  backend:
+    image: hainguyen267/elasticsearch-demo-be
+    container_name: backend
+    ports:
+      - 8080:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_PASSWORD: my_password
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+  frontend:
+    image: hainguyen267/elasticsearch-demo-fe
+    container_name: frontend
+    ports:
+      - 3000:3000
+    depends_on:
+      - backend
+    environment:
+      # REACT_APP_BACKEND_URL: http://localhost:8080/api/v1
+      REACT_APP_BACKEND_URL: http://35.240.195.123:8080/api/v1
+volumes:
+  mysql_data:
